@@ -548,6 +548,13 @@ function handleTextMessage(message, replyToken, userId) {
   const userMessage = message.text;
   console.log('ユーザーメッセージ:', userMessage);
   
+  // 環境変数の確認
+  if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+    console.error('LINE_CHANNEL_ACCESS_TOKENが設定されていません');
+    sendReplyMessage(replyToken, 'Botの設定が完了していません。管理者にお問い合わせください。', false);
+    return;
+  }
+  
   const userState = getUserState(userId);
   const user = initializeUser(userId);
   
@@ -575,7 +582,8 @@ function handleTextMessage(message, replyToken, userId) {
   } else if (userMessage === '/weekly') {
     replyText = generateWeeklyReview(userId);
   } else {
-    replyText = getToneMessage(user.settings.tone, 'help');
+    // 不明なメッセージの場合、より親切なレスポンス
+    replyText = `こんにちは！寺子屋タスクメンターです。\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ\n\n何かお手伝いできることはありますか？`;
   }
   
   sendReplyMessage(replyToken, replyText, useQuickReply);
@@ -657,7 +665,7 @@ function handleFollow(event) {
   const userId = event.source.userId;
   
   initializeUser(userId);
-  const welcomeMessage = getToneMessage('mild', 'help');
+  const welcomeMessage = `🎉 寺子屋タスクメンターへようこそ！\n\n朝にコミット、夜に決算、週1で人生監査する辛口チャット型タスクメンターです。\n\nまずは今日のタスクを宣言してみてください：\n\nam: タスクA, タスクB, タスクC\n\n設定は /settings で変更できます。\n\n頑張りましょう！💪`;
   sendReplyMessage(replyToken, welcomeMessage, true);
 }
 
