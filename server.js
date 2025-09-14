@@ -461,26 +461,45 @@ function scheduleNotifications() {
 // LINE Messaging APIのwebhookエンドポイント
 app.post('/webhook', (req, res) => {
   try {
+    console.log('Webhook受信:', {
+      method: req.method,
+      headers: req.headers,
+      body: req.body
+    });
+
+    // 環境変数の確認
+    if (!process.env.LINE_CHANNEL_SECRET) {
+      console.error('LINE_CHANNEL_SECRETが設定されていません');
+      return res.status(500).send('Server configuration error');
+    }
+
     // 署名検証
     const signature = req.get('X-Line-Signature');
     if (!signature) {
       console.log('署名が見つかりません');
-      return res.status(400).send('Bad Request');
+      return res.status(400).send('Bad Request - No signature');
     }
 
     if (!verifySignature(signature, req.rawBody, process.env.LINE_CHANNEL_SECRET)) {
       console.log('署名検証に失敗しました');
-      return res.status(400).send('Bad Request');
+      console.log('期待するシークレット:', process.env.LINE_CHANNEL_SECRET ? '設定済み' : '未設定');
+      return res.status(400).send('Bad Request - Invalid signature');
     }
 
-    console.log('受信したイベント:', JSON.stringify(req.body, null, 2));
+    console.log('署名検証成功');
 
     // イベント処理
     const events = req.body.events;
+    if (!events || !Array.isArray(events)) {
+      console.log('イベントが無効です:', req.body);
+      return res.status(400).send('Bad Request - Invalid events');
+    }
+
     events.forEach(event => {
       handleEvent(event);
     });
 
+    console.log('Webhook処理完了');
     res.status(200).send('OK');
   } catch (error) {
     console.error('Webhook処理エラー:', error);
