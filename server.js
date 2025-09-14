@@ -830,6 +830,19 @@ function handlePostback(event) {
   }
 }
 
+// ルート設定
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '寺子屋タスクメンター Bot Server',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      webhook: '/webhook',
+      health: '/health'
+    }
+  });
+});
+
 // ヘルスチェックエンドポイント
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -837,6 +850,16 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     users: users.size,
     uptime: process.uptime()
+  });
+});
+
+// 404エラーハンドリング
+app.use('*', (req, res) => {
+  console.log('404エラー:', req.method, req.originalUrl);
+  res.status(404).json({ 
+    error: 'Not Found',
+    message: 'エンドポイントが見つかりません',
+    availableEndpoints: ['/webhook', '/health']
   });
 });
 
