@@ -1,0 +1,25 @@
+{
+  "name": "terakoya-task-mentor",
+  "version": "1.0.0",
+  "description": "朝にコミット、夜に決算、週1で人生監査する辛口チャット型タスクメンター",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["line", "messaging-api", "task-management", "mentor", "productivity"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "node-cron": "^3.0.3",
+    "moment-timezone": "^0.5.43"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+
