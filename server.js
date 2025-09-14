@@ -84,6 +84,14 @@ function clearUserState(userId) {
 // AI会話機能
 async function generateAIResponse(userId, message, context = {}) {
   try {
+    console.log('AI応答生成開始:', { userId, message, context });
+    
+    // OpenAI APIキーの確認
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEYが設定されていません');
+      return 'AI機能が設定されていません。管理者にお問い合わせください。';
+    }
+    
     const user = initializeUser(userId);
     const tone = user.settings.tone;
     
@@ -114,6 +122,7 @@ ${JSON.stringify(context, null, 2)}
 
 ユーザーのメッセージに適切に応答してください。`;
 
+    console.log('OpenAI API呼び出し開始');
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -124,11 +133,39 @@ ${JSON.stringify(context, null, 2)}
       temperature: 0.7
     });
 
+    console.log('OpenAI API応答受信:', response.choices[0].message.content);
     return response.choices[0].message.content;
   } catch (error) {
     console.error('AI応答生成エラー:', error);
-    return '申し訳ありませんが、AI応答の生成に失敗しました。しばらくしてからもう一度お試しください。';
+    console.error('エラー詳細:', error.message);
+    return `申し訳ありませんが、AI応答の生成に失敗しました。\n\nエラー: ${error.message}\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ`;
   }
+}
+
+// フォールバック応答
+function getFallbackResponse(message, tone) {
+  const responses = {
+    mild: [
+      "こんにちは！何かお手伝いできることはありますか？",
+      "タスク管理について相談したいことがあれば、お気軽にどうぞ。",
+      "今日のタスクは決まりましたか？am: で宣言してみてください。"
+    ],
+    sharp: [
+      "何だ？用件を言え。",
+      "タスクは決まったか？am: で宣言しろ。",
+      "時間は有限だ。何をしたい？"
+    ],
+    dos: [
+      "用件を述べろ。",
+      "タスクを決めろ。am: で宣言せよ。",
+      "次の行動を決めろ。"
+    ]
+  };
+  
+  const toneResponses = responses[tone] || responses.mild;
+  const randomIndex = Math.floor(Math.random() * toneResponses.length);
+  
+  return `${toneResponses[randomIndex]}\n\nコマンド:\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定\n• /help でヘルプ`;
 }
 
 // トーン別メッセージ生成
@@ -639,6 +676,8 @@ async function handleTextMessage(message, replyToken, userId) {
     replyText = generateWeeklyReview(userId);
   } else {
     // AI会話機能を使用
+    console.log('AI会話機能を使用:', userMessage);
+    
     const context = {
       currentTasks: user.currentTasks,
       weeklyStats: user.weeklyStats,
@@ -649,9 +688,11 @@ async function handleTextMessage(message, replyToken, userId) {
     
     try {
       replyText = await generateAIResponse(userId, userMessage, context);
+      console.log('AI応答生成完了:', replyText);
     } catch (error) {
       console.error('AI応答エラー:', error);
-      replyText = `申し訳ありませんが、AI応答の生成に失敗しました。\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ`;
+      // フォールバック: 基本的な応答
+      replyText = getFallbackResponse(userMessage, user.settings.tone);
     }
   }
   
