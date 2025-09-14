@@ -2,10 +2,16 @@ const express = require('express');
 const crypto = require('crypto');
 const cron = require('node-cron');
 const moment = require('moment-timezone');
+const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// OpenAIクライアント初期化
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // ミドルウェア設定
 app.use(express.json({
@@ -73,6 +79,56 @@ function getUserState(userId) {
 
 function clearUserState(userId) {
   userStates.delete(userId);
+}
+
+// AI会話機能
+async function generateAIResponse(userId, message, context = {}) {
+  try {
+    const user = initializeUser(userId);
+    const tone = user.settings.tone;
+    
+    // システムプロンプトを設定
+    const systemPrompt = `あなたは「寺子屋タスクメンター」という辛口チャット型タスクメンターです。
+
+【人格設定】
+- 朝にコミット、夜に決算、週1で人生監査する
+- 先延ばしを潰すことを使命とする
+- 口調は${tone}で、以下のように使い分ける：
+  - mild: 事実＋提案＋励まし
+  - sharp: 事実＋矛盾指摘＋選択肢（短文・敬語省略）
+  - dos: 事実＋非情な基準＋次の1手を強制コミット
+
+【機能】
+- 朝コミット: 今日やる最大3つを宣言
+- 夜レポート: 結果を報告（達成/未達＋一言）
+- 週次レビュー: 1週間分を自動集計し、人生設計との整合性を"辛口"で返す
+
+【現在の状況】
+${JSON.stringify(context, null, 2)}
+
+【重要なルール】
+- 人格攻撃・罵倒は禁止
+- 常に建設的で実用的なアドバイスを提供
+- タスク管理に焦点を当てる
+- ユーザーの成長を促す
+
+ユーザーのメッセージに適切に応答してください。`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('AI応答生成エラー:', error);
+    return '申し訳ありませんが、AI応答の生成に失敗しました。しばらくしてからもう一度お試しください。';
+  }
 }
 
 // トーン別メッセージ生成
@@ -530,7 +586,7 @@ function handleEvent(event) {
 }
 
 // メッセージイベントの処理
-function handleMessage(event) {
+async function handleMessage(event) {
   const message = event.message;
   const replyToken = event.replyToken;
   const userId = event.source.userId;
@@ -539,12 +595,12 @@ function handleMessage(event) {
   console.log('メッセージ内容:', message);
   
   if (message.type === 'text') {
-    handleTextMessage(message, replyToken, userId);
+    await handleTextMessage(message, replyToken, userId);
   }
 }
 
 // テキストメッセージの処理
-function handleTextMessage(message, replyToken, userId) {
+async function handleTextMessage(message, replyToken, userId) {
   const userMessage = message.text;
   console.log('ユーザーメッセージ:', userMessage);
   
@@ -582,8 +638,21 @@ function handleTextMessage(message, replyToken, userId) {
   } else if (userMessage === '/weekly') {
     replyText = generateWeeklyReview(userId);
   } else {
-    // 不明なメッセージの場合、より親切なレスポンス
-    replyText = `こんにちは！寺子屋タスクメンターです。\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ\n\n何かお手伝いできることはありますか？`;
+    // AI会話機能を使用
+    const context = {
+      currentTasks: user.currentTasks,
+      weeklyStats: user.weeklyStats,
+      settings: user.settings,
+      lastAmReport: user.lastAmReport,
+      lastPmReport: user.lastPmReport
+    };
+    
+    try {
+      replyText = await generateAIResponse(userId, userMessage, context);
+    } catch (error) {
+      console.error('AI応答エラー:', error);
+      replyText = `申し訳ありませんが、AI応答の生成に失敗しました。\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ`;
+    }
   }
   
   sendReplyMessage(replyToken, replyText, useQuickReply);
