@@ -127,12 +127,12 @@ ${JSON.stringify(context, null, 2)}
     
     const response = await Promise.race([
       openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: message }
         ],
-        max_tokens: 500,
+        max_tokens: 300,
         temperature: 0.7
       }),
       new Promise((_, reject) => 
