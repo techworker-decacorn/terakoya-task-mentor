@@ -437,6 +437,13 @@ function getQuickReplyItems() {
 // メッセージ送信
 async function sendMessage(userId, text, useQuickReply = false) {
   try {
+    console.log('メッセージ送信開始:', { userId, text: text.substring(0, 100) + '...', useQuickReply });
+    
+    if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+      console.error('LINE_CHANNEL_ACCESS_TOKENが設定されていません');
+      return;
+    }
+    
     const message = {
       to: userId,
       messages: [{
@@ -451,6 +458,8 @@ async function sendMessage(userId, text, useQuickReply = false) {
       };
     }
     
+    console.log('送信メッセージ:', JSON.stringify(message, null, 2));
+    
     const response = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
       headers: {
@@ -460,10 +469,14 @@ async function sendMessage(userId, text, useQuickReply = false) {
       body: JSON.stringify(message)
     });
 
+    console.log('LINE API応答:', response.status, response.statusText);
+    
     if (!response.ok) {
-      console.error('メッセージ送信エラー:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('メッセージ送信エラー:', response.status, response.statusText, errorText);
     } else {
-      console.log('メッセージを送信しました');
+      const responseData = await response.json();
+      console.log('メッセージ送信成功:', responseData);
     }
   } catch (error) {
     console.error('メッセージ送信エラー:', error);
@@ -473,6 +486,13 @@ async function sendMessage(userId, text, useQuickReply = false) {
 // リプライメッセージ送信
 async function sendReplyMessage(replyToken, text, useQuickReply = false, customQuickReply = null) {
   try {
+    console.log('リプライメッセージ送信開始:', { replyToken, text: text.substring(0, 100) + '...', useQuickReply });
+    
+    if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+      console.error('LINE_CHANNEL_ACCESS_TOKENが設定されていません');
+      return;
+    }
+    
     const message = {
       replyToken: replyToken,
       messages: [{
@@ -489,6 +509,8 @@ async function sendReplyMessage(replyToken, text, useQuickReply = false, customQ
       };
     }
     
+    console.log('送信リプライメッセージ:', JSON.stringify(message, null, 2));
+    
     const response = await fetch('https://api.line.me/v2/bot/message/reply', {
       method: 'POST',
       headers: {
@@ -498,10 +520,14 @@ async function sendReplyMessage(replyToken, text, useQuickReply = false, customQ
       body: JSON.stringify(message)
     });
 
+    console.log('LINE API応答:', response.status, response.statusText);
+    
     if (!response.ok) {
-      console.error('リプライメッセージ送信エラー:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('リプライメッセージ送信エラー:', response.status, response.statusText, errorText);
     } else {
-      console.log('リプライメッセージを送信しました');
+      const responseData = await response.json();
+      console.log('リプライメッセージ送信成功:', responseData);
     }
   } catch (error) {
     console.error('リプライメッセージ送信エラー:', error);
