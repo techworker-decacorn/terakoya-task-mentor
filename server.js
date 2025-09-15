@@ -138,6 +138,7 @@ ${JSON.stringify(context, null, 2)}
   } catch (error) {
     console.error('AI応答生成エラー:', error);
     console.error('エラー詳細:', error.message);
+    console.error('エラースタック:', error.stack);
     return `申し訳ありませんが、AI応答の生成に失敗しました。\n\nエラー: ${error.message}\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ`;
   }
 }
@@ -726,6 +727,8 @@ async function handleTextMessage(message, replyToken, userId) {
       console.log('AI応答生成完了:', replyText);
     } catch (error) {
       console.error('AI応答エラー:', error);
+      console.error('AI応答エラー詳細:', error.message);
+      console.error('AI応答エラースタック:', error.stack);
       // フォールバック: 基本的な応答
       replyText = getFallbackResponse(userMessage, user.settings.tone);
     }
