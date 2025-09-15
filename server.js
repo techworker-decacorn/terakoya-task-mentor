@@ -518,6 +518,8 @@ async function sendReplyMessage(replyToken, text, useQuickReply = false, customQ
     }
     
     console.log('送信リプライメッセージ:', JSON.stringify(message, null, 2));
+    console.log('LINE API URL:', 'https://api.line.me/v2/bot/message/reply');
+    console.log('Authorization Header:', `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN ? '設定済み' : '未設定'}`);
     
     const response = await fetch('https://api.line.me/v2/bot/message/reply', {
       method: 'POST',
@@ -539,6 +541,10 @@ async function sendReplyMessage(replyToken, text, useQuickReply = false, customQ
         headers: Object.fromEntries(response.headers.entries()),
         body: errorText
       });
+      
+      // エラーの場合はPushメッセージで再試行
+      console.log('Pushメッセージで再試行');
+      await sendMessage(replyToken.split('_')[0], text, useQuickReply, customQuickReply);
     } else {
       const responseData = await response.json();
       console.log('リプライメッセージ送信成功:', responseData);
