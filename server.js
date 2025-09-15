@@ -624,19 +624,23 @@ app.post('/webhook', (req, res) => {
 
     console.log('署名検証成功');
 
-    // イベント処理
+    // 即座に200 OKを返す（replyToken失効対策）
+    res.status(200).send('OK');
+
+    // イベント処理を非同期で実行
     const events = req.body.events;
     if (!events || !Array.isArray(events)) {
       console.log('イベントが無効です:', req.body);
-      return res.status(400).send('Bad Request - Invalid events');
+      return;
     }
 
-    events.forEach(event => {
-      handleEvent(event);
+    // 非同期でイベント処理
+    setImmediate(() => {
+      events.forEach(event => {
+        handleEvent(event);
+      });
+      console.log('Webhook処理完了');
     });
-
-    console.log('Webhook処理完了');
-    res.status(200).send('OK');
   } catch (error) {
     console.error('Webhook処理エラー:', error);
     res.status(500).send('Internal Server Error');
@@ -721,28 +725,39 @@ async function handleTextMessage(message, replyToken, userId) {
     // AI会話機能を使用
     console.log('AI会話機能を使用:', userMessage);
     
-    // 一時的にAI機能を無効化してテスト
-    console.log('AI機能を一時的に無効化してテスト中');
-    replyText = getFallbackResponse(userMessage, user.settings.tone);
+    // 即座に「読み込み中」メッセージを送信
+    sendReplyMessage(replyToken, '🤔 考え中...', false);
     
-    // const context = {
-    //   currentTasks: user.currentTasks,
-    //   weeklyStats: user.weeklyStats,
-    //   settings: user.settings,
-    //   lastAmReport: user.lastAmReport,
-    //   lastPmReport: user.lastPmReport
-    // };
+    // AI応答を非同期で生成してPushメッセージで送信
+    setImmediate(async () => {
+      try {
+        const context = {
+          currentTasks: user.currentTasks,
+          weeklyStats: user.weeklyStats,
+          settings: user.settings,
+          lastAmReport: user.lastAmReport,
+          lastPmReport: user.lastPmReport
+        };
+        
+        console.log('AI応答生成開始（非同期）');
+        const aiResponse = await generateAIResponse(userId, userMessage, context);
+        console.log('AI応答生成完了:', aiResponse);
+        
+        // Pushメッセージで送信
+        await sendMessage(userId, aiResponse, true);
+        
+      } catch (error) {
+        console.error('AI応答エラー:', error);
+        console.error('AI応答エラー詳細:', error.message);
+        console.error('AI応答エラースタック:', error.stack);
+        
+        // フォールバック: 基本的な応答をPushメッセージで送信
+        const fallbackResponse = getFallbackResponse(userMessage, user.settings.tone);
+        await sendMessage(userId, fallbackResponse, true);
+      }
+    });
     
-    // try {
-    //   replyText = await generateAIResponse(userId, userMessage, context);
-    //   console.log('AI応答生成完了:', replyText);
-    // } catch (error) {
-    //   console.error('AI応答エラー:', error);
-    //   console.error('AI応答エラー詳細:', error.message);
-    //   console.error('AI応答エラースタック:', error.stack);
-    //   // フォールバック: 基本的な応答
-    //   replyText = getFallbackResponse(userMessage, user.settings.tone);
-    // }
+    return; // ここで処理を終了（Pushメッセージで後から送信）
   }
   
   sendReplyMessage(replyToken, replyText, useQuickReply);
