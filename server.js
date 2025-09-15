@@ -721,24 +721,28 @@ async function handleTextMessage(message, replyToken, userId) {
     // AI会話機能を使用
     console.log('AI会話機能を使用:', userMessage);
     
-    const context = {
-      currentTasks: user.currentTasks,
-      weeklyStats: user.weeklyStats,
-      settings: user.settings,
-      lastAmReport: user.lastAmReport,
-      lastPmReport: user.lastPmReport
-    };
+    // 一時的にAI機能を無効化してテスト
+    console.log('AI機能を一時的に無効化してテスト中');
+    replyText = getFallbackResponse(userMessage, user.settings.tone);
     
-    try {
-      replyText = await generateAIResponse(userId, userMessage, context);
-      console.log('AI応答生成完了:', replyText);
-    } catch (error) {
-      console.error('AI応答エラー:', error);
-      console.error('AI応答エラー詳細:', error.message);
-      console.error('AI応答エラースタック:', error.stack);
-      // フォールバック: 基本的な応答
-      replyText = getFallbackResponse(userMessage, user.settings.tone);
-    }
+    // const context = {
+    //   currentTasks: user.currentTasks,
+    //   weeklyStats: user.weeklyStats,
+    //   settings: user.settings,
+    //   lastAmReport: user.lastAmReport,
+    //   lastPmReport: user.lastPmReport
+    // };
+    
+    // try {
+    //   replyText = await generateAIResponse(userId, userMessage, context);
+    //   console.log('AI応答生成完了:', replyText);
+    // } catch (error) {
+    //   console.error('AI応答エラー:', error);
+    //   console.error('AI応答エラー詳細:', error.message);
+    //   console.error('AI応答エラースタック:', error.stack);
+    //   // フォールバック: 基本的な応答
+    //   replyText = getFallbackResponse(userMessage, user.settings.tone);
+    // }
   }
   
   sendReplyMessage(replyToken, replyText, useQuickReply);
