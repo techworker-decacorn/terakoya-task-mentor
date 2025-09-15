@@ -580,11 +580,14 @@ function scheduleNotifications() {
 // LINE Messaging APIのwebhookエンドポイント
 app.post('/webhook', (req, res) => {
   try {
+    console.log('=== WEBHOOK受信開始 ===');
     console.log('Webhook受信:', {
       method: req.method,
+      url: req.url,
       headers: req.headers,
       body: req.body
     });
+    console.log('=== WEBHOOK受信終了 ===');
 
     // 環境変数の確認
     if (!process.env.LINE_CHANNEL_SECRET) {
