@@ -123,15 +123,22 @@ ${JSON.stringify(context, null, 2)}
 ユーザーのメッセージに適切に応答してください。`;
 
     console.log('OpenAI API呼び出し開始');
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    });
+    console.log('OpenAI APIキー確認:', process.env.OPENAI_API_KEY ? '設定済み' : '未設定');
+    
+    const response = await Promise.race([
+      openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('OpenAI API timeout')), 10000)
+      )
+    ]);
 
     console.log('OpenAI API応答受信:', response.choices[0].message.content);
     return response.choices[0].message.content;
