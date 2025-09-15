@@ -735,8 +735,10 @@ async function handleTextMessage(message, replyToken, userId) {
     sendReplyMessage(replyToken, '🤔 考え中...', false);
     
     // AI応答を非同期で生成してPushメッセージで送信
+    console.log('非同期処理を開始します');
     setImmediate(async () => {
       try {
+        console.log('AI応答生成開始（非同期）');
         const context = {
           currentTasks: user.currentTasks,
           weeklyStats: user.weeklyStats,
@@ -745,12 +747,14 @@ async function handleTextMessage(message, replyToken, userId) {
           lastPmReport: user.lastPmReport
         };
         
-        console.log('AI応答生成開始（非同期）');
+        console.log('コンテキスト準備完了:', context);
         const aiResponse = await generateAIResponse(userId, userMessage, context);
         console.log('AI応答生成完了:', aiResponse);
         
         // Pushメッセージで送信
+        console.log('Pushメッセージ送信開始');
         await sendMessage(userId, aiResponse, true);
+        console.log('Pushメッセージ送信完了');
         
       } catch (error) {
         console.error('AI応答エラー:', error);
@@ -765,7 +769,9 @@ async function handleTextMessage(message, replyToken, userId) {
           errorMessage = getFallbackResponse(userMessage, user.settings.tone);
         }
         
+        console.log('エラー時のPushメッセージ送信開始');
         await sendMessage(userId, errorMessage, true);
+        console.log('エラー時のPushメッセージ送信完了');
       }
     });
     
