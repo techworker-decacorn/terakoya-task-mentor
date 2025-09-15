@@ -136,7 +136,7 @@ ${JSON.stringify(context, null, 2)}
         temperature: 0.7
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('OpenAI API timeout')), 10000)
+        setTimeout(() => reject(new Error('OpenAI API timeout')), 30000)
       )
     ]);
 
@@ -751,9 +751,15 @@ async function handleTextMessage(message, replyToken, userId) {
         console.error('AI応答エラー詳細:', error.message);
         console.error('AI応答エラースタック:', error.stack);
         
-        // フォールバック: 基本的な応答をPushメッセージで送信
-        const fallbackResponse = getFallbackResponse(userMessage, user.settings.tone);
-        await sendMessage(userId, fallbackResponse, true);
+        // タイムアウトエラーの場合は特別なメッセージ
+        let errorMessage;
+        if (error.message.includes('timeout')) {
+          errorMessage = '⏰ 申し訳ありません。AI応答に時間がかかりすぎました。\n\n以下のコマンドを使用してください：\n\n• am: タスクA, タスクB, タスクC\n• pm: A=done, B=done, C=miss(理由)\n• /settings で設定メニュー\n• /help でヘルプ';
+        } else {
+          errorMessage = getFallbackResponse(userMessage, user.settings.tone);
+        }
+        
+        await sendMessage(userId, errorMessage, true);
       }
     });
     
