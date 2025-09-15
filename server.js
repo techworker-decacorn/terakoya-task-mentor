@@ -525,6 +525,12 @@ async function sendReplyMessage(replyToken, text, useQuickReply = false, customQ
     if (!response.ok) {
       const errorText = await response.text();
       console.error('リプライメッセージ送信エラー:', response.status, response.statusText, errorText);
+      console.error('エラー詳細:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: errorText
+      });
     } else {
       const responseData = await response.json();
       console.log('リプライメッセージ送信成功:', responseData);
